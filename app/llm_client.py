@@ -1,16 +1,33 @@
-# Local stub that returns a concise summary without external calls.
-# Replace with your own API integration if desired.
+import os, json, requests
+
+LLM_ENDPOINT = os.getenv("LLM_ENDPOINT", "")
+LLM_API_KEY  = os.getenv("LLM_API_KEY", "")
 
 def summarize_with_llm(payload: dict) -> str:
-    ubas = payload.get("ubas", {})
-    total = ubas.get("total", 0)
-    band = ubas.get("band", "Unknown")
-    front = payload.get("post", {}).get("front") or payload.get("pre", {}).get("front") or {}
-    mrd1 = (front.get("mrd1_L",0)+front.get("mrd1_R",0))/2 if front else 0
-    tps = (front.get("tps_mid_L",0)+front.get("tps_mid_R",0))/2 if front else 0
-    pfh = (front.get("pfh_L",0)+front.get("pfh_R",0))/2 if front else 0
-    return (
-        f"Surgery summary: Functional lift (MRD1 avg ~ {mrd1:.2f} ID) with tarsal show ~ {tps:.2f} ID "
-        f"and PFH ~ {pfh:.2f} ID. Crease appears near-symmetric; brow position stable. "
-        f"Overall rating: {band} (Total {total}/30)."
-    )
+    if not LLM_ENDPOINT or not LLM_API_KEY:
+        # Safe fallback if env vars aren't set
+        ubas = payload.get("ubas", {})
+        total = ubas.get("total", 0)
+        band = ubas.get("band", "Unknown")
+        return f"(Local) Overall rating: {band} ({total}/30)."
+    try:
+        r = requests.post(
+            LLM_ENDPOINT,
+            headers={
+                "Authorization": f"Bearer {LLM_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            data=json.dumps({
+                "instruction": (
+                  "Summarize the surgical outcome in 3–5 sentences. "
+                  "Highlight MRD1 change, tarsal show (mid/med/lat), crease symmetry, "
+                  "brow stability, side-view sulcus changes. End with the rating band."
+                ),
+                "metrics": payload
+            }),
+            timeout=20
+        )
+        r.raise_for_status()
+        return r.json().get("summary", "(No summary field in response)")
+    except Exception as e:
+        return f"(Summary unavailable: {e})"
