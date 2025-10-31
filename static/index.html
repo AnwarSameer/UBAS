@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>UBAS Anthropometry Upload</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 2rem; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 1rem; max-width: 720px; }
+    input[type=file] { display:block; margin:.5rem 0 1rem; }
+    .row { display:flex; gap:1rem; }
+    .col { flex:1; }
+    button { padding:.6rem 1rem; border-radius: 8px; border:0; background:#111; color:#fff; }
+    .out { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#fafafa; padding:1rem; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Analyze Surgery (2 required + 2 optional)</h2>
+    <form id="f">
+      <label>Pre-op front (required)</label>
+      <input type="file" name="pre_front" required accept="image/*"/>
+      <label>Post-op front (required)</label>
+      <input type="file" name="post_front" required accept="image/*"/>
+      <div class="row">
+        <div class="col">
+          <label>Pre-op side (optional)</label>
+          <input type="file" name="pre_side" accept="image/*"/>
+        </div>
+        <div class="col">
+          <label>Post-op side (optional)</label>
+          <input type="file" name="post_side" accept="image/*"/>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label><input type="checkbox" name="use_sticker"/> Use 10 mm sticker</label>
+        </div>
+        <div class="col">
+          <label>Sticker px (detected)</label>
+          <input type="number" name="sticker_px" step="0.01" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Iris diam (mm)</label>
+          <input type="number" name="iris_diam_mm" step="0.1" value="11.8"/>
+        </div>
+      </div>
+      <button type="submit">Run</button>
+    </form>
+    <h3>Output</h3>
+    <div id="out" class="out"></div>
+  </div>
+<script>
+const f = document.getElementById('f');
+const out = document.getElementById('out');
+f.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = new FormData(f);
+  const res = await fetch('/analyze-multi', { method:'POST', body:data });
+  const j = await res.json();
+  out.textContent = JSON.stringify(j, null, 2);
+});
+</script>
+</body>
+</html>
